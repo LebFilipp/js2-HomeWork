@@ -1,19 +1,37 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <link rel="stylesheet" href="style.css">
-  <title>eShop</title>
-</head>
-<body>
-  <header>
-    <button class="cart-button" type="button">Корзина</button>
-  </header>
-  <main>
-    
-    <div class="goods-list"></div>
 
-  </main>
-  
-  <script src="script.js"></script>
+<head>
+	<title>eShop</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+	<header class="container">
+		<button class="cart-button">Корзина <span class="basketTotalValue">0</span></button>
+		<div class="basket hidden">
+			<div class="basketRow basketHeader">
+				<div>Название товара</div>
+				<div>Количество</div>
+				<div>Цена за шт.</div>
+				<div>Итого</div>
+			</div>
+
+			<div class="basketTotal">
+				Товаров в корзине на сумму:
+
+				$<span class="basketTotalPrice">0</span>
+			</div>
+		</div>
+	</header>
+	<main>
+		<div class="container">
+			<div class="featuredItems">
+			</div>
+		</div>
+	</main>
+
+	<script src="script.js"></script>
 </body>
+
 </html>
