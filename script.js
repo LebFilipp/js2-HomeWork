@@ -25,7 +25,7 @@ function send(onError, onSuccess, url, method = 'GET', data = '', headers = {}, 
       if(xhr.status < 400) {
         onSuccess(xhr.responseText)
       } else if (xhr.status >= 400) {
-        onError(xhr.status)
+        onError(xhr.status) 
       }
     }
   }
