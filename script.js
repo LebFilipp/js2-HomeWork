@@ -1,232 +1,184 @@
-function getCounter() {
-	let last = 0;
+const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses/';
 
-	return () => ++last;
+function send(onError, onSuccess, url, method = 'GET', data = '', headers = {}, timeout = 60000) {
+ 
+  let xhr;
+
+  if (window.XMLHttpRequest) {
+    // Chrome, Mozilla, Opera, Safari
+    xhr = new XMLHttpRequest();
+  } else if (window.ActiveXObject) { 
+    // Internet Explorer
+    xhr = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+
+  for([key, value] of Object.entries(headers)) {
+    xhr.setRequestHeader(key, value)
+  }
+
+  xhr.timeout = timeout; 
+
+  xhr.ontimeout = onError;
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      if(xhr.status < 400) {
+        onSuccess(xhr.responseText)
+      } else if (xhr.status >= 400) {
+        onError(xhr.status)
+      }
+    }
+  }
+
+  xhr.open(method, url, true);
+
+  xhr.send(data);
 }
-const showCaseDivEl = document.querySelector('.featuredItems');
-const basketTotalDivEl = document.querySelector('.basketTotal');
-const basketTotalValueSpanEl = document.querySelector('.basketTotalValue');
-const basketTotalPriceSpanEl = document.querySelector('.basketTotalPrice');
-const basketEl = document.querySelector('.basket');
-const stackIDGenrator = getCounter();
 
-document.querySelector('.cart-button').addEventListener('click', event => {
-	if (event.target.closest('.cart-button')) {
-		basketEl.classList.toggle('hidden');
-	}
-});
+function getCounter() {
+  let last = 0;
+
+  return () => ++last;
+}
+
+const stackIDGenrator = getCounter()
 
 
 class Good {
-	constructor({ id, title, price }) {
-		this.id = id;
-		this.title = title;
-		this.price = price;
-	}
+  constructor({id, title, price}) {
+    this.id = id;
+    this.title = title;
+    this.price = price;
+  }
 
-	getId() {
-		return this.id;
-	}
+  getId() {
+    return this.id;
+  }
 
-	getPrice() {
-		return this.price;
-	}
+  getPrice() {
+    return this.price;
+  }
 
-	getTitle() {
-		return this.title;
-	}
+  getTitle() {
+    return this.title;
+  }
 }
 
 class GoodStack {
-	constructor(good) {
-		this.id = stackIDGenrator();
-		this.good = good;
-		this.count = 1;
-	}
+  constructor(good) {
+    this.id = stackIDGenrator();
+    this.good = good;
+    this.count = 1;
+  }
 
-	getGoodId() {
-		return this.good.id;
-	}
+  getGoodId() {
+    return this.good.id
+  }
 
-	getGood() {
-		return this.good;
-	}
+  getGood(){
+    return this.good;
+  }
 
-	getCount() {
-		return this.count;
-	}
+  getCount() {
+    return this.count;
+  }
 
-	add() {
-		this.count++;
-		return this.count;
-	}
+  getPrice() {
+    return this.good.price * this.count
+  }
 
-	remove() {
-		this.count--;
-		return this.count;
-	}
+  add() {
+    this.count++;
+    return this.count;
+  }
+
+  remove() {
+    this.count--;
+    return this.count;
+  }
 }
 
 class Cart {
-	constructor() {
-		this.list = []
-	}
+  constructor(){
+    this.list = []
+  }
 
-	add(good) {
-		const idx = this.list.findIndex((stack) => stack.getGoodId() == good.id);
+  add(good) {
+    const idx = this.list.findIndex((stack) => stack.getGoodId() == good.id)
 
-		if (idx >= 0) {
-			this.list[idx].add();
-		} else {
-			this.list.push(new GoodStack(good));
-		}
-	}
+    if(idx >= 0) {
+      this.list[idx].add()
+    } else {
+      this.list.push(new GoodStack(good))
+    }
 
-	remove(id) {
-		const idx = this.list.findIndex((stack) => stack.getGoodId() == id);
+  }
 
-		if (idx >= 0) {
-			this.list[idx].remove();
+  remove(id) {
+    const idx = this.list.findIndex((stack) => stack.getGoodId() == id)
 
-			if (this.list[idx].getCount() <= 0) {
-				this.list.splice(idx, 1);
-			}
-		}
-	}
-}
+    if(idx >= 0) {
+      this.list[idx].remove()
 
-class RenderCart {
-	constructor(cart) {
-		this.cart = cart;
-	}
-	renderCartEls() {
+      if(this.list[idx].getCount() <= 0) {
+        this.list.splice(idx, 1)
+      }
+    } 
 
-		const basketRowGoogEls = document.querySelectorAll('.basketRowGoog');
-		if (basketRowGoogEls) {
-			basketRowGoogEls.forEach(el => el.remove());
-			basketTotalValueSpanEl.textContent = '0';
-			basketTotalPriceSpanEl.textContent = '';
-		}
-
-		this.cart.list.forEach((el, idx) => {
-			basketTotalDivEl.insertAdjacentHTML('beforebegin',
-				`
-			<div class="basketRow basketRowGoog" data-productId="${el.good.id}">
-				<div>${el.good.title}</div>
-				<div><button class="changeCountGood reduceCount" data-productId="${el.good.id}">-</button>
-					<span class="productCount">${el.count}</span> шт.
-					<button class="changeCountGood increaseCount" data-productId="${el.good.id}">+</button>
-				</div>
-				<div>$${el.good.price}</div>
-				<div>
-					<span class="productTotalRow">
-					$${(el.count * el.good.price).toFixed(2)}
-					</span>
-				</div>
-			</div>
-			`);
-			basketTotalValueSpanEl.textContent = this.getTotalBasketValue();
-			basketTotalPriceSpanEl.textContent = this.getTotalBasketPrice();
-		});
-	}
-
-	getTotalBasketValue() {
-		return this.cart.list.reduce((acc, good) => acc + good.count, 0);
-	}
-
-	getTotalBasketPrice() {
-		return this.cart.list
-			.reduce((acc, good) => acc + good.count * good.good.price, 0);
-	}
+  }
 }
 
 class Showcase {
-	constructor(cart) {
-		this.list = [];
-		this.cart = cart;
-	}
+  constructor(cart){
+    this.list = [];
+    this.cart = cart;
+  }
 
-	fetchGoods() {
-		this.list = [
-			new Good({ id: 1, title: 'Футболка', price: 140 }),
-			new Good({ id: 2, title: 'Брюки', price: 320 }),
-			new Good({ id: 3, title: 'Галстук', price: 24 }),
-		]
-	}
+  _onSuccess(response) {
+    const data = JSON.parse(response)
+    data.forEach(product => {
+      this.list.push(
+        new Good({id: product.id_product, title:product.product_name, price:product.price})
+      )
+    });
+  }
 
-	addToCart(id) {
-		const idx = this.list.findIndex((good) => id == good.id);
+  _onError(err) {
+    console.log(err);
+  }
 
-		if (idx >= 0) {
-			this.cart.add(this.list[idx]);
-		}
-	}
+  fetchGoods() {
+    send(this._onError, this._onSuccess.bind(this), `${API_URL}catalogData.json`)
+  }
+
+  addToCart(id) {
+    const idx = this.list.findIndex((good) => id == good.id)
+
+    if(idx >= 0) {
+      this.cart.add(this.list[idx])
+    }
+  }
 }
 
-class RenderShowcase {
-	constructor({ cart, list }) {
-		this.cart = cart;
-		this.list = list;
-	}
-	renderShowCaseEl() {
-		this.list.forEach(el => {
-			showCaseDivEl.insertAdjacentHTML('afterbegin',
-				`<div class="featuredItem" data-id="${el.id}" 
-				data-name="${el.title}" data-price="${el.price}">
-				<div class="featuredImgWrap">
-				<img src="1.jpg" alt="">
-					<div class="featuredImgDark">
-						<button class="addToCart">
-							<img src="cart.svg" alt="">
-							Add to Cart
-						</button>
-					</div>
-				</div>
-				<div class="featuredData">
-					<div class="featuredName">
-						${el.title}
-					</div>
-					<div class="featuredText">
-						Known for her sculptural takes on traditional tailoring,
-						Australian arbiter of cool Kym Ellery
-						teams
-						up with Moda Operandi.
-					</div>
-					<div class="featuredPrice">
-					$${el.price}
-					</div>
-				</div>
-			</div>`
-			);
-		});
-	}
-}
-showCaseDivEl.addEventListener('click', event => {
-	if (!event.target.closest('.addToCart')) {
-		return;
-	}
-	const id = +event.target.closest('.featuredItem').dataset.id;
 
-	showcase.addToCart(id);
-	renderCart.renderCartEls();
-});
-
-basketEl.addEventListener('click', event => {
-	if (!event.target.closest('.changeCountGood')) {
-		return;
-	}
-	const goodId = +event.target.dataset.productid;
-	event.target.classList.contains('reduceCount')
-		? cart.remove(goodId) : showcase.addToCart(goodId);
-	renderCart.renderCartEls();
-});
-
-const cart = new Cart();
-const showcase = new Showcase(cart);
-const renderCart = new RenderCart(cart);
+const cart = new Cart()
+const showcase = new Showcase(cart)
 
 showcase.fetchGoods();
-const renderShowcase = new RenderShowcase(showcase);
 
-renderShowcase.renderShowCaseEl();
-renderCart.renderCartEls();
+setTimeout(() => {
+  showcase.addToCart(123)
+  showcase.addToCart(123)
+  showcase.addToCart(123)
+  showcase.addToCart(456)
+
+  cart.remove(123)
+
+
+  console.log(showcase, cart)
+}, 1000)
+
+
+
+
+// Создать класс для отрисовки каточки товара на витрине, и класс отрисовки карточки товара в корзине, класс отрисовки корзины, и класс отрисовки витрины
